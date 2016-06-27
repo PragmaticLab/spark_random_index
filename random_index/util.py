@@ -59,6 +59,3 @@ def generate_vocabulary(sc, corpusRDD, min_count=10):
 	
 def remove_nonvocab_corpus(sc, corpusRDD, vocab):
 	return corpusRDD.map(lambda list_of_words: [word for word in list_of_words if word in vocab])
-
-
-
