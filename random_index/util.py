@@ -46,7 +46,7 @@ ENGLISH_STOP_WORDS = frozenset([
 def load_corpus(sc, path, stopwords=None):
 	if stopwords is None:
 		stopwords = ENGLISH_STOP_WORDS 
-	raw = sc.textFile(path, minPartitions=6)
+	raw = sc.textFile(path, minPartitions=2)
 	filtered = raw.map(lambda line: line.lower().split())
 	corpusRDD = filtered.map(lambda words: [word for word in words if word not in stopwords])
 	return corpusRDD

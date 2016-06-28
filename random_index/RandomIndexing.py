@@ -1,7 +1,10 @@
 import random
 import numpy as np
 from pyspark import SparkContext
+from pyspark import StorageLevel
 import random
+from scipy.spatial.distance import cosine
+import pickle
 
 
 class RandomIndexing:
@@ -55,9 +58,39 @@ class RandomIndexing:
 						word_embedding += local_random_labels[word_j]
 			return [local_embedding]
 		embeddingRDD = corpusRDD.mapPartitions(train_partition)
-		self.embedding = embeddingRDD.reduce(lambda (a,b): a).collect()
+		self.embedding = embeddingRDD.reduce(lambda a, b: a + b)
 
-	# def getVector(self, )
+	def getVector(self, word):
+		return self.embedding[self.vocab.index(word)]
 
+	def getMostSimilar(self, word, topn=10):
+		score_dict = {}
+		if type(word) is str:
+			vector = self.getVector(word)
+		else:
+			vector = word
+		for curr_word in self.vocab:
+			dist = cosine(vector, self.getVector(curr_word))
+			if np.isnan(dist):
+				continue
+			simscore = 1 - dist
+			score_dict[curr_word] = simscore
+		sorted_list = sorted(score_dict.items(), key=lambda kv: kv[1], reverse=True)
+		return sorted_list[:topn]
 
+	def save(self, fileName="/tmp/ri.pkl"):
+		with open(fileName, 'wb') as output:
+			self.vocab_sc = None 
+			self.random_labels_sc = None
+			self.embedding_sc = None
+			pickle.dump(self, output, pickle.HIGHEST_PROTOCOL)
 
+	def load(self, fileName="/tmp/ri.pkl"):
+		with open(fileName, 'r') as tmp_input:
+			obj = pickle.load(tmp_input)
+			self.vocab = obj.vocab
+			self.dimension = obj.dimension
+			self.nonsparse_avg = obj.nonsparse_avg
+			self.nonsparse_sd = obj.nonsparse_sd
+			self.embedding = obj.embedding
+			self.random_labels = obj.random_labels
